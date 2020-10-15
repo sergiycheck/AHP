@@ -18,9 +18,9 @@ namespace methodAnalysisHierarchies
 
         public int NumberOfCriterias { get; private set; }
 
-        private const string numMatcher = @"[0-9]+\.?[0-9]*\/?[0-9]*\.?[0-9]*";
+        public const string numMatcher = @"[0-9]+\.?[0-9]*\/?[0-9]*\.?[0-9]*";
 
-        private const string onlyNumMatcher = @"[0-9]+\.?[0-9]*";
+        public const string onlyNumMatcher = @"[0-9]+\.?[0-9]*";
 
         public AhpBuilder() 
         {
@@ -41,14 +41,14 @@ namespace methodAnalysisHierarchies
             return string.Join(" ", valueList);
         }
 
-        public MatchCollection GetMatches(string matchExpression, string text)
+        public static MatchCollection GetMatches(string matchExpression, string text)
         {
             var regularExpression = new Regex(matchExpression);
             return regularExpression.Matches(text);
         }
 
         
-        public List<double> ConvertMatchesToDoubles(MatchCollection matches)
+        public static List<double> ConvertMatchesToDoubles(MatchCollection matches)
         {
             var row = new List<double>();
             foreach(Match match in matches) 

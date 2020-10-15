@@ -173,12 +173,25 @@ namespace methodAnalysisHierarchies
             ahpmodel.PrintAlternativesNumbers(alternatives);
 
         }
+        static void ElectreBuilder() 
+        {
+            var electreBuilder = new Electre();
+            var creteria2dArr = electreBuilder
+                //.BuildCriteriasMultidimentionalArrayFromCode();
+                .BuildCriteriasMultidimentionalArray();
+            var agreementIndex = electreBuilder.AgreementIndex(creteria2dArr);
+            var disAgreementIndex = electreBuilder.DisAgreementIndex(creteria2dArr);
+            electreBuilder
+                //.FinalDecision(agreementIndex, disAgreementIndex);
+                .FinalDecisionFromMaxAverage(agreementIndex, disAgreementIndex);
 
+        }
         static void Main(string[] args)
         {
             //InitFromCodeAnalyze();
             //TestMathNumeric2();
-            AhpBuilder();
+            //AhpBuilder();
+            ElectreBuilder();
 
 
         }
