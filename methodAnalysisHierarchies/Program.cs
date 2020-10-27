@@ -186,12 +186,18 @@ namespace methodAnalysisHierarchies
                 .FinalDecisionFromMaxAverage(agreementIndex, disAgreementIndex);
 
         }
+        static void SimplexBuilder() 
+        {
+            var simplexMethod = new SimplexMethod();
+            simplexMethod.InitSimplexTableFromCode();
+        }
         static void Main(string[] args)
         {
             //InitFromCodeAnalyze();
             //TestMathNumeric2();
             //AhpBuilder();
-            ElectreBuilder();
+            //ElectreBuilder();
+            SimplexBuilder();
 
 
         }
