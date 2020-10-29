@@ -9,60 +9,10 @@ namespace methodAnalysisHierarchies
 {
     public class SimplexMethod
     {
-
-        public void InitSimplexTableFromCode() 
+        private IMatrixPrinter _matrixPrinter;
+        public SimplexMethod(IMatrixPrinter printer) 
         {
-            //for minimization problem all the cj-zj>=0 / zj-cj<=0
-            //for maximization problem all the cj-zj<=0 / zj-cj>=0
-
-            //var matrixCoefs = new double[,]
-            //{
-            //    {10, 20, 1, 0 },
-            //    {8,   8, 0, 1 }
-            //};
-            //var solutionCoefs = new double[] { 120, 80 };
-            //var maximizationFunctionCoefs = new double[] { 12, 16, 0, 0 };
-            //Func<double, int, bool> greaterThanOrEqual = (first, second) => first <= second;
-            //var solutionTable = Solve(matrixCoefs, solutionCoefs, maximizationFunctionCoefs, greaterThanOrEqual, true);
-
-
-            //var matrixCoefs = new double[,]
-            //{
-            //    {    1,  0,  1, 1, 0, 0 },
-            //    {    2,  1,  2, 0, 1, 0 },
-            //    {    2, -1,  2, 0, 0, 1 }
-            //};
-            //var solutionCoefs = new double[] { 4, 6, 2 };
-            //var maximizationFunctionCoefs = new double[] { 3, -2, 1, 0, 0, 0 };
-            //Func<double, int, bool> greaterThanOrEqual = (first, second) => first >= second;
-            //var solutionTable = Solve(matrixCoefs, solutionCoefs, maximizationFunctionCoefs, greaterThanOrEqual, false);
-
-
-            //var matrixCoefs = new double[,]
-            //{
-            //    {    3, -1,  2, 1, 0, 0 },
-            //    {   -2, -4,  0, 0, 1, 0 },
-            //    {   -4,  3,  8, 0, 0, 1 }
-            //};
-            //var solutionCoefs = new double[] { 7, 12,10};
-            //var maximizationFunctionCoefs = new double[] { 2, -3, 6, 0, 0, 0 };
-            //Func<double, int, bool> greaterThanOrEqual = (first, second) => first >= second;
-            //var solutionTable = Solve(matrixCoefs, solutionCoefs, maximizationFunctionCoefs, greaterThanOrEqual, false);
-
-
-
-            var matrixCoefs = new double[,]
-            {
-                {-2,  -1,   1,   0,    0,   0,   0 },
-                {-1,  -4,   0,   1,    0,   0,   0,},
-                {2,   -1,   0,   0,    1,   0,   0,},
-                {2,    3,   0,   0,    0,   1,   0, },
-                {-1,   4,   0,   0,    0,   0,   1, }
-            };
-            var solutionCoefs = new double[] { -5, -6, 16, 32, 28 };
-            var maximizationFunctionCoefs = new double[] { 1, -6, 0, 0, 0, 0, 0 };
-            Func<double, int, bool> greaterThanOrEqual = (first, second) => first <= second;
-            var solutionTable = Solve(matrixCoefs, solutionCoefs, maximizationFunctionCoefs, greaterThanOrEqual, true);
+            _matrixPrinter = printer;
         }
 
         public double[] GetZiCoefs(int rows,int columns,double[] ZiCoefs,double[] coefOfBasicVariables,double[,] matrixCoefs) 
@@ -93,7 +43,10 @@ namespace methodAnalysisHierarchies
         {
             for (int i = 0; i < rows; i++)
             {
-                ratioCoefs[i] = solutionCoefs[i] / matrixCoefs[i,keyColumnIndex];
+                if (matrixCoefs[i, keyColumnIndex] != 0)
+                    ratioCoefs[i] = solutionCoefs[i] / matrixCoefs[i, keyColumnIndex];
+                else
+                    ratioCoefs[i] = double.MaxValue;
             }
             return ratioCoefs;
         }
@@ -144,30 +97,7 @@ namespace methodAnalysisHierarchies
             }
             return newMatrixCoefs;
         }
-        public void Print(double [,] matrix)
-        {
-            Console.WriteLine($"Matrix [rows,columns] [{matrix.GetLength(0)},{matrix.GetLength(1)}]");
-            for (var i = 0; i < matrix.GetLength(0); i++)
-            {
-                Console.Write("\n");
-                for (var j = 0; j < matrix.GetLength(1); j++)
-                {
-                    Console.Write("{0}\t", matrix[i, j]);
-                }
-
-            }
-            Console.Write("\n");
-
-        }
-        public void Print(double[] vector)
-        {
-            Console.WriteLine($"vector [columns] [{vector.Length}]");
-            for (var i = 0; i < vector.Length; i++)
-            {
-                Console.Write("{0}\t", vector[i]);
-            }
-            Console.Write("\n");
-        }
+       
 
         public double[,] Solve(double[,] matrixCoefs,double[] solutionCoefs,double[] maximizationFunctionCoefs,Func<double,int,bool> checkOptimality,bool maximization) 
         {
@@ -184,9 +114,12 @@ namespace methodAnalysisHierarchies
             var rowsWithCiCoefs = rows + 1;
             var columnsWithSolutionCoefs = columns + 1;
             var extendedMatrix = new double[rowsWithCiCoefs, columnsWithSolutionCoefs];
+            var counter = 0;
             while (!EvaluateIfObtimal(CiMinusZiCoefs,checkOptimality))//if check for optimal returns false start loop
             {
-
+                counter++;
+                if (counter >= 10)
+                    break;
                 //extendedMatrix = new double[rowsWithCiCoefs, columnsWithSolutionCoefs];
                 for (int i = 0; i < rowsWithCiCoefs; i++)
                 {
@@ -197,7 +130,7 @@ namespace methodAnalysisHierarchies
                     }
                 }
 
-                Print(extendedMatrix);
+                _matrixPrinter.Print(extendedMatrix);
 
                 var max = 0.0;
                 if(maximization)
@@ -208,7 +141,7 @@ namespace methodAnalysisHierarchies
                 var keyColumnIndex = CiMinusZiCoefs.ToList().IndexOf(max);
                 var ratioCoefs = new double[rows];
                 ratioCoefs = GetRatioCoefs(rows, ratioCoefs, solutionCoefs, matrixCoefs, keyColumnIndex);//change matrix coefs with new table
-                Print(ratioCoefs);
+                _matrixPrinter.Print(ratioCoefs);
 
                 var min = ratioCoefs.ToList().Where(el=>el>0).Min();
                 var keyRowIndex = ratioCoefs.ToList().IndexOf(min);
@@ -220,7 +153,7 @@ namespace methodAnalysisHierarchies
                 extendedMatrix = InsertNumsToColumn(extendedMatrix,columnsWithSolutionCoefs, solutionCoefs);
                 extendedMatrix = InsertNumsToRow(extendedMatrix,rowsWithCiCoefs, maximizationFunctionCoefs);
 
-                Print(extendedMatrix);
+                _matrixPrinter.Print(extendedMatrix);
 
                 //change basics variables
                 coefOfBasicVariables[keyRowIndex] = maximizationFunctionCoefs[keyColumnIndex];
@@ -255,13 +188,13 @@ namespace methodAnalysisHierarchies
                     Console.WriteLine("-------------------");
                     
                 }
-                Print(extendedMatrix);
+                _matrixPrinter.Print(extendedMatrix);
                 ZiCoefs = GetZiCoefs(rows, columnsWithSolutionCoefs, ZiCoefs, coefOfBasicVariables, extendedMatrix);
-                Print(ZiCoefs);
+                _matrixPrinter.Print(ZiCoefs);
                 CiMinusZiCoefs = GetCiMinusZiCoefs(columns, CiMinusZiCoefs, maximizationFunctionCoefs, ZiCoefs);
-                Print(CiMinusZiCoefs);
-                Console.WriteLine("Coefficient of basic variables");
-                Print(coefOfBasicVariables);
+                _matrixPrinter.Print(CiMinusZiCoefs);
+                Console.WriteLine("Coefficients of basic variables");
+                _matrixPrinter.Print(coefOfBasicVariables);
 
                 for (int i = 0; i < rows; i++)
                 {

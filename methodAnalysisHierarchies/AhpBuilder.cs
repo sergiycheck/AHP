@@ -19,6 +19,7 @@ namespace methodAnalysisHierarchies
         public int NumberOfCriterias { get; private set; }
 
         public const string numMatcher = @"[0-9]+\.?[0-9]*\/?[0-9]*\.?[0-9]*";
+        public const string negNumMatcher = @"-?[0-9]+\.?[0-9]*\/?[0-9]*\.?[0-9]*";
 
         public const string onlyNumMatcher = @"[0-9]+\.?[0-9]*";
 

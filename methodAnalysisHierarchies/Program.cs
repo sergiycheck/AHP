@@ -188,8 +188,10 @@ namespace methodAnalysisHierarchies
         }
         static void SimplexBuilder() 
         {
-            var simplexMethod = new SimplexMethod();
-            simplexMethod.InitSimplexTableFromCode();
+            var simplexInitializer = new SimplexMethodInitializer(new Reader(), new SimplexMethod(new MatrixConsolePrinter()));
+            simplexInitializer.InitSimplexTableFromCode();
+            //simplexInitializer.InitSimplexTableFromConsole();
+
         }
         static void Main(string[] args)
         {
@@ -198,7 +200,6 @@ namespace methodAnalysisHierarchies
             //AhpBuilder();
             //ElectreBuilder();
             SimplexBuilder();
-
 
         }
     }

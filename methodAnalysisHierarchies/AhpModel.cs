@@ -173,7 +173,7 @@ namespace methodAnalysisHierarchies
                         number_AlternativeChoiceCollection[l].OwnVector[j]* CriteriaMatrix.OwnVector[l];
                 }
                 Console.Write("\n"); 
-                _globalVectorAndAlterative.Add(new(j, globalVector[j]));
+                _globalVectorAndAlterative.Add(new KeyValuePair<int, double>(j, globalVector[j]));
             }
 
 
