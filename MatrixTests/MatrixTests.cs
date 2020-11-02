@@ -1,5 +1,6 @@
-using MathNet.Numerics.LinearAlgebra;
+﻿using MathNet.Numerics.LinearAlgebra;
 using MathNet.Numerics.LinearAlgebra.Double;
+using methodAnalysisHierarchies;
 using NUnit.Framework;
 using System;
 using System.Globalization;
@@ -106,6 +107,391 @@ namespace MatrixTests
             var newMatrix = matrix.Append(appmatrx);
             Console.WriteLine(newMatrix);
             Assert.AreEqual(vectorCol.Count + vectorRow.Count, newMatrix.RowCount * newMatrix.ColumnCount);
+        }
+
+        //https://www.youtube.com/watch?v=M8POtpPtQZc&t=578s&ab_channel=KauserWise
+        [Test]
+        public void SimplexMethodTest1()
+        {
+            SimplexMethod _simplexMethod = new SimplexMethod(new MatrixConsolePrinter());
+            var matrixCoefs = new double[,]
+            {
+                {10, 20, 1, 0 },
+                {8,   8, 0, 1 }
+            };
+            var solutionCoefs = new double[] { 120, 80 };
+            var maximizationFunctionCoefs = new double[] { 12, 16, 0, 0 };
+            Func<double, int, bool> greaterThanOrEqual = (first, second) => first <= second;
+            var solutionTable = _simplexMethod.Solve(matrixCoefs, solutionCoefs, maximizationFunctionCoefs, greaterThanOrEqual, true);
+
+            var solutionExpected = new double[,]
+                {
+                    {0,     1,     0.1,    -0.125,  2 },
+                    {1,     0,    -0.1,     0.25,   8 },
+                    {0,     16,    1.2,       -3,  -192}
+                };
+            
+            //Assert.AreEqual(solutionExpected,solutionTable.ExtendedMatrix);
+            Assert.AreEqual(128, solutionTable.ZiCoefs[solutionTable.ZiCoefs.Length - 1]);
+            
+        }
+        
+        //https://www.youtube.com/watch?v=SNc9NGCJmns&ab_channel=KauserWise      
+        [Test]
+        public void SimplexMethodTest2()
+        {
+            SimplexMethod _simplexMethod = new SimplexMethod(new MatrixConsolePrinter());
+            var matrixCoefs = new double[,]
+            {
+                {    3, -1,  2, 1, 0, 0 },
+                {   -2, -4,  0, 0, 1, 0 },
+                {   -4,  3,  8, 0, 0, 1 }
+            };
+            var solutionCoefs = new double[] { 7, 12, 10 };
+            var maximizationFunctionCoefs = new double[] { 2, -3, 6, 0, 0, 0 };
+            Func<double, int, bool> greaterThanOrEqual = (first, second) => first >= second;
+            var solutionTable = _simplexMethod.Solve(matrixCoefs, solutionCoefs, maximizationFunctionCoefs, greaterThanOrEqual, false);
+
+            var solutionExpected = new double[,]
+                {
+                    {1,   0,	2.8	 ,   0.6,	 0,	    0.2	 ,   6.199 },	
+                    {0,   0,	31.197,	4.399,	 1,	    2.798,	70.787},	
+                    {0,   1,	6.399,	0.8	 ,   0,	    0.599,	11.596},	
+                    {0,  -3,	0.401,	-1.2,    0,	    -0.4,	-2.397}
+                    
+                    
+                };
+
+            //Assert.AreEqual(solutionExpected, solutionTable.ExtendedMatrix);
+            Assert.AreEqual(-22.39, solutionTable.ZiCoefs[solutionTable.ZiCoefs.Length - 1]);
+
+        }
+        [Test]
+        public void SimplexMethodTest3()
+        {
+            SimplexMethod _simplexMethod = new SimplexMethod(new MatrixConsolePrinter());
+
+            //working solution =-20
+            //F(X) = -2x1-x2 -> min
+            //3x1+2x2≥10
+            //x1≤15
+            //x1 + 2x2≤10
+            //- 2x1 - 4x2 + x3 + x4 = 7
+            //- 2x1 + x3 + 5x4 = 21
+
+            var matrixCoefs = new double[,]
+            {
+                {  3,    2,   0,   0,  -1,   0,  0 },
+                {  1,    0,   0,   0,   0,   1,  0 },
+                {  1,    2,   0,   0,   0,   0,  1 },
+                { -2,   -4,   1,   1,   0,   0,  0 },
+                { -2,    0,   1,   5,   0,   0,  0 }
+            };
+            var solutionCoefs = new double[] { 10, 15, 10, 7, 21 };
+            var maximizationFunctionCoefs = new double[] { -2, -1, 0, 0, 0, 0, 0 };
+
+
+            Func<double, int, bool> greaterThanOrEqual = (first, second) => first >= second;
+            var solutionTable = _simplexMethod
+                .Solve(matrixCoefs, solutionCoefs, maximizationFunctionCoefs, greaterThanOrEqual, false);
+
+            var solutionExpected = new double[,]
+                {
+                    { 1,     2,     0,  0,  0,  0,  1,      10,     },
+                    { 0,    -2,     0,  0,  0,  1,  -1,     5,      },
+                    { 0,    4.003,  0,  0,  1,  0,  3.003,  20.021, },
+                    { 0,    0.003,  1,  1,  0,  0,  2.003,  27.021, },
+                    { 0,    4.003,  1,  5,  0,  0,  2.003,  41.021, },
+                    {-2,    -1,     0,  0,  0,  0,  0,      6.667,  }
+
+
+                };
+
+            //Assert.AreEqual(solutionExpected, solutionTable.ExtendedMatrix);
+            Assert.AreEqual(-20, solutionTable.ZiCoefs[solutionTable.ZiCoefs.Length - 1]);
+
+        }
+        [Test]
+        public void SimplexMethodTest4() 
+        {
+
+            //F(X) = x1-6x2
+            //2x1+x2≥5
+            //x1 + 4x2≥6
+            //2x1 - x2≤16
+            //2x1 + 3x2≤32
+            //- x1 + 4x2≤28
+
+            var printer = new MatrixConsolePrinter();
+            SimplexMethod _simplexMethod = new SimplexMethod(printer);
+            var matrixCoefs = new double[,]
+            {
+                {2,   1,  -1,   0,    0,   0,   0 },
+                {1,    4,   0,  -1,    0,   0,   0,},
+                {2,   -1,   0,   0,    1,   0,   0,},
+                {2,    3,   0,   0,    0,   1,   0, },
+                {-1,   4,   0,   0,    0,   0,   1, }
+            };
+            var solutionCoefs = new double[] { 5, 6, 16, 32, 28 };
+
+
+            var maximizationFunctionCoefs = new double[] { 1, -6, 0, 0, 0, 0, 0 };
+            Func<double, int, bool> greaterThanOrEqual = (first, second) => first <= second;
+            var solutionTable = _simplexMethod.Solve(matrixCoefs, solutionCoefs, maximizationFunctionCoefs, greaterThanOrEqual, true);
+
+            var solutionExpected = new double[,]
+                {
+                    {1 ,     -0.5,    0,       0,       0.5,     0,       0,       8   ,},
+                    {0 ,     -2  ,    1,       0,       1  ,     0,       0,       11  ,},
+                    {0 ,     -4.5,    0,       1,       0.5,     0,       0,       2   ,},
+                    {0 ,     4   ,    0,       0,       -1 ,     1,       0,       16  ,},
+                    {0 ,     3.5 ,    0,       0,       0.5,     0,       1,       36  ,},
+                    {1 ,     -6  ,    0,       0,       0  ,     0,       0,       -2.5,}
+
+                };
+
+            //Assert.AreEqual(solutionExpected, solutionTable.ExtendedMatrix);
+            Assert.AreEqual(8, solutionTable.ZiCoefs[solutionTable.ZiCoefs.Length - 1]);
+        }
+        [Test]
+        public void SimplexMethodTest5() 
+        {
+            //lab2 sample 8
+            //F(X) = 4x1+x2
+            //x1+4x2≥7
+            //-x1 + 4x2≤25
+            //2x1 + 3x2≤30
+            //4x1 - x3 + x4≤20
+            //- 2x1 + x3 + x4 = 11
+
+            var printer = new MatrixConsolePrinter();
+            SimplexMethod _simplexMethod = new SimplexMethod(printer);
+
+            var matrixCoefs = new double[,]
+            {
+                {  -1, -4,   0,   0,   1,   0,   0,   0, },
+                {  -1,  4,   0,   0,   0,   1,   0,   0, },
+                {   2,  3,   0,   0,   0,   0,   1,   0, },
+                {   4,  0,  -1,   1,   0,   0,   0,   1, },
+                {  -2,  0,   1,   1,   0,   0,   0,   0, }
+            };
+            var solutionCoefs = new double[] { -7, 25, 30, 20, 11 };
+            var maximizationFunctionCoefs = new double[] { 4, 1, 0, 0, 0, 0, 0, 0 };
+
+            Func<double, int, bool> greaterThanOrEqual = (first, second) => first >= second;
+            var solutionTable = _simplexMethod.Solve(matrixCoefs, solutionCoefs, maximizationFunctionCoefs, greaterThanOrEqual, false);
+
+
+            var solutionExpected = new double[,]
+                {
+
+                    {0.25 ,   1 ,  -0 , -0 , -0.25 , -0 , -0 , -0 , 1.75   ,},
+                    {-2   ,   0 ,  0  , 0  , 1     ,  1 ,  0 ,  0 ,  18    ,},
+                    {1.25 ,   0 ,  0  , 0  , 0.75  ,  0 ,  1 ,  0 ,  24.75 ,},
+                    {4    ,   0 ,  -1 , 1  , 0     ,  0 ,  0 ,  1 ,  20    ,},
+                    {-2   ,   0 ,  1  , 1  , 0     ,  0 ,  0 ,  0 ,  11    ,},
+                    {3.75 ,   0 ,  0  , 0  , 0.25  ,  0 ,  0 ,  0 ,  -1.75 ,}
+                };
+
+            Assert.AreEqual(solutionExpected, solutionTable.ExtendedMatrix);
+
+            Assert.AreEqual(1.75,Math.Round(solutionTable.ZiCoefs[solutionTable.ZiCoefs.Length - 1],2));
+        }
+        [Test]
+        public void SimplexMethodTest6()
+        {
+            //F(X) = 3x1+2x2+x3
+            //x1+x3≥4
+            //2x1 + x2 + 2x3≥6
+            //2x1 - x2 + 2x3≥2
+            var printer = new MatrixConsolePrinter();
+            SimplexMethod _simplexMethod = new SimplexMethod(printer);
+            var matrixCoefs = new double[,]
+            {
+                {     -1,  0,   -1, 1,0,0},
+                {     -2,  -1,   -2, 0, 1,0 },
+                {     -2,  1,   -2 ,0 ,0, 1}
+            };
+            var solutionCoefs = new double[] { -4, -6, -2 };
+            var maximizationFunctionCoefs = new double[] { 3, 2, 1,0,0,0 };
+            Func<double, int, bool> greaterThanOrEqual = (first, second) => first >= second;
+            var solutionTable = _simplexMethod.Solve(matrixCoefs, solutionCoefs, maximizationFunctionCoefs, greaterThanOrEqual, false);
+            Assert.AreEqual(4, Math.Round(solutionTable.ZiCoefs[solutionTable.ZiCoefs.Length - 1], 2));
+        }
+        [Test]
+        public void SimplexMethodTest7() 
+        {
+            // F(X) = 4x1 + 2x2 + x3
+            //- x1 - x2≤-10
+            //2x1 + x2 - x3≤8
+            var printer = new MatrixConsolePrinter();
+            SimplexMethod _simplexMethod = new SimplexMethod(printer);
+            var matrixCoefs = new double[,]
+            {
+                {     -1,  -1,   0, 1,0},
+                {      2,   1,  -1, 0,1},
+            };
+            var solutionCoefs = new double[] { -10, 8};
+            var maximizationFunctionCoefs = new double[] { 4, 2, 1, 0, 0};
+            Func<double, int, bool> greaterThanOrEqual = (first, second) => first >= second;
+            var solutionTable = _simplexMethod.Solve(matrixCoefs, solutionCoefs, maximizationFunctionCoefs, greaterThanOrEqual, false);
+            Assert.AreEqual(22, Math.Round(solutionTable.ZiCoefs[solutionTable.ZiCoefs.Length - 1], 2));
+        }
+        [Test]
+        public void SimplexMethodTest8()
+        {
+            //  F(X) = x1+x3+3x4 
+            //-2x1 - 5x2≤-15
+            //8x2≤8
+            //x1 + x2≤10
+            //-2x1 - 2x2 + x3 + x4 = -3
+            //-2x1 + x3 + 3x4 = 11
+            var printer = new MatrixConsolePrinter();
+            SimplexMethod _simplexMethod = new SimplexMethod(printer);
+            var matrixCoefs = new double[,]
+            {
+                 { -2, -5,  0,  0,  1,  0,  0},
+                 {  0,  8,  0,  0,  0,  1,  0},
+                 {  1,  1,  0,  0,  0,  0,  1},
+                 { -2, -2,  1,  1,  0,  0,  0},
+                 { -2,  0,  1,  3,  0,  0,  0}
+
+            };
+
+            var solutionCoefs = new double[] { -15, 8,10,-3,11 };
+            var maximizationFunctionCoefs = new double[] { 1, 0, 1, 3, 0,0,0 };
+            Func<double, int, bool> greaterThanOrEqual = (first, second) => first >= second;
+            var solutionTable = _simplexMethod.Solve(matrixCoefs, solutionCoefs, maximizationFunctionCoefs, greaterThanOrEqual, false);
+            Assert.AreEqual(26, Math.Round(solutionTable.ZiCoefs[solutionTable.ZiCoefs.Length - 1], 2));
+        }
+        [Test]
+        public void SimplexMethodTest8SomeIterationsSkiped()
+        {
+           
+            var printer = new MatrixConsolePrinter();
+            SimplexMethod _simplexMethod = new SimplexMethod(printer);
+            var matrixCoefs = new double[,]
+            {
+                 {-2,   -5, 0,  0,  1,  0,  0},
+                 { 0,    8, 0,  0,  0,  1,  0},
+                 { 1,    1, 0,  0,  0,  0,  1},
+                 {-2,   -3, 1,  0,  0,  0,  0},
+                 { 0,    1, 0,  1,  0,  0,  0}
+
+            };
+
+            var solutionCoefs = new double[] { -15, 8, 10, -10, 7 };
+            var maximizationFunctionCoefs = new double[] { -3, 0, 0, 0, 0, 0,0 };
+            Func<double, int, bool> greaterThanOrEqual = (first, second) => first >= second;
+            var solutionTable = _simplexMethod.Solve(matrixCoefs, solutionCoefs, maximizationFunctionCoefs, greaterThanOrEqual, false);
+            Assert.AreEqual(26, Math.Round(solutionTable.ZiCoefs[solutionTable.ZiCoefs.Length - 1], 2));
+        }
+
+        [Test]
+        public void SimplexMethodTestToCanonicalForm6() 
+        {
+            //lab2 sample 8
+            //var matrixCoefs = new double[,]
+            //{
+            //    {     1,  4,   0,   0},
+            //    {     1, -4,   0,   0},
+            //    {    -2, -3,   0,   0 },
+            //    {    -4,  0,   1,   -1},
+            //    {    -2,  0,   1,   -1}
+            //};
+            //var solutionCoefs = new double[] { 7, -25, -30, -20, 11 };
+            //var maximizationFunctionCoefs = new double[] { 4, 1 };
+        }
+        public void SimplexMethodDualMethodMinizization() 
+        {
+
+            //not working
+            //var matrixCoefs = new double[,]
+            //{
+            //    {     1,  0,   1, -1,  0, 0 },
+            //    {     2,  1,   2,  0, -1, 0 },
+            //    {     2, -1,   2,  0,  0, -1 }
+            //};
+            //var solutionCoefs = new double[] {  4,  6,  2 };
+            //var maximizationFunctionCoefs = new double[] { 3, 2, 1, 0, 0, 0 };
+
+
+            //Func<double, int, bool> greaterThanOrEqual = (first, second) => first <= second;
+            //var solutionTable = _simplexMethod
+            //    .Solve(matrixCoefs, solutionCoefs, maximizationFunctionCoefs, greaterThanOrEqual, true);
+
+            //Z = 3x1+2x2+x3->min
+            //x1+x3>=4
+            //2x1+x2+2x3>=6
+            //2x1-x2+2x3>=2
+            //https://www.matburo.ru/Examples/Files/Simplex8.pdf
+
+            //working solution = 4
+
+            //var matrixCoefs = new double[,]
+            //{
+            //    {     1,  0,   1},
+            //    {     2,  1,   2},
+            //    {     2, -1,   2 }
+            //};
+            //var solutionCoefs = new double[] { 4, 6, 2 };
+            //var maximizationFunctionCoefs = new double[] { 3, 2, 1 };
+
+
+
+            //var matrix = Matrix<double>.Build.DenseOfArray(matrixCoefs);
+            //var extendedMatrix = new DenseMatrix(matrix.RowCount + 1, matrix.ColumnCount + 1);
+
+            //extendedMatrix.SetSubMatrix(0, 0, matrix);
+
+            //var vectorSolutionCoefs = Vector<double>.Build.DenseOfArray(solutionCoefs);
+            //var vectormaximizationFunctionCoefs = Vector<double>.Build.DenseOfArray(maximizationFunctionCoefs);
+            //extendedMatrix.SetColumn(extendedMatrix.ColumnCount - 1, 0, vectorSolutionCoefs.Count, vectorSolutionCoefs);
+            //extendedMatrix.SetRow(extendedMatrix.RowCount - 1, 0, vectormaximizationFunctionCoefs.Count, vectormaximizationFunctionCoefs);
+            //Console.WriteLine(extendedMatrix);
+
+            //var transposedMatrix = extendedMatrix.Transpose();
+            //Console.WriteLine(transposedMatrix);
+            //solutionCoefs = transposedMatrix.Column(transposedMatrix.ColumnCount - 1, 0, transposedMatrix.RowCount - 1).ToArray();
+            //maximizationFunctionCoefs = transposedMatrix.Row(transposedMatrix.RowCount - 1, 0, transposedMatrix.ColumnCount).ToArray();
+
+            //var matrixSolutionCoefs = Matrix<double>.Build.DenseOfRowVectors(Vector<double>.Build.DenseOfArray(solutionCoefs));
+            //Console.WriteLine(matrixSolutionCoefs);
+            //var matrixMaximizationFunctionCoefs = Matrix<double>.Build.DenseOfRowVectors(Vector<double>.Build.DenseOfArray(maximizationFunctionCoefs));
+            //Console.WriteLine(matrixMaximizationFunctionCoefs);
+
+            //var transposedMatrixWithoutSolutions = new DenseMatrix(transposedMatrix.RowCount, transposedMatrix.ColumnCount - 1);
+            //transposedMatrixWithoutSolutions.SetSubMatrix(0, transposedMatrix.RowCount, 0, transposedMatrix.ColumnCount - 1, transposedMatrix);
+            //Console.WriteLine(transposedMatrixWithoutSolutions);
+
+            //var numberofRows = transposedMatrixWithoutSolutions.RowCount;
+            //var canonicalMatrixList = new List<List<double>>();
+            //for (int i = 0; i < numberofRows; i++)
+            //{
+            //    var rowList = new List<double>();
+            //    var canonicalFormCoefs = new double[numberofRows];
+            //    canonicalFormCoefs[i] = 1;
+            //    for (int j = 0; j < transposedMatrixWithoutSolutions.ColumnCount; j++)
+            //    {
+            //        rowList.Add(transposedMatrixWithoutSolutions[i, j]);
+            //    }
+            //    rowList.AddRange(canonicalFormCoefs);
+            //    canonicalMatrixList.Add(rowList);
+            //}
+            //var resultCanonicalMatrix = Matrix<double>.Build.DenseOfRows(canonicalMatrixList);
+            //Console.WriteLine(resultCanonicalMatrix);
+
+            //var CanonicalMatrix = new DenseMatrix(resultCanonicalMatrix.RowCount - 1, resultCanonicalMatrix.ColumnCount - 1);
+            //CanonicalMatrix.SetSubMatrix(0, resultCanonicalMatrix.RowCount - 1, 0, resultCanonicalMatrix.ColumnCount - 1, resultCanonicalMatrix);
+            //Console.WriteLine(CanonicalMatrix);
+            //var maximizationFuncCoefsMatrix = resultCanonicalMatrix.Row(resultCanonicalMatrix.RowCount - 1, 0, resultCanonicalMatrix.ColumnCount - 1);
+            //Console.WriteLine(maximizationFuncCoefsMatrix);
+            //Console.WriteLine(matrixSolutionCoefs);
+
+
+            //Func<double, int, bool> greaterThanOrEqual = (first, second) => first <= second;
+            //var solutionTable = _simplexMethod
+            //    .Solve(CanonicalMatrix.ToArray(), matrixSolutionCoefs.ToRowMajorArray(), maximizationFuncCoefsMatrix.ToArray(), greaterThanOrEqual, true);
         }
     }
 }

@@ -39,14 +39,25 @@ namespace methodAnalysisHierarchies
         {
             return CiMinusZiCoefs.All(elem => checkOptimality(elem, 0));
         }
-        public double[] GetRatioCoefs(int rows,double[] ratioCoefs,double[]solutionCoefs,double[,]matrixCoefs,int keyColumnIndex) 
+        public double[] GetRatioCoefs(int rows,double[] ratioCoefs,double[]solutionCoefs,double[,]matrixCoefs,int keyColumnOrRowIndex,bool column) 
         {
             for (int i = 0; i < rows; i++)
             {
-                if (matrixCoefs[i, keyColumnIndex] != 0)
-                    ratioCoefs[i] = solutionCoefs[i] / matrixCoefs[i, keyColumnIndex];
-                else
-                    ratioCoefs[i] = double.MaxValue;
+                if (column) 
+                {
+                    if (matrixCoefs[i, keyColumnOrRowIndex] != 0)
+                        ratioCoefs[i] = solutionCoefs[i] / matrixCoefs[i, keyColumnOrRowIndex];                  
+                    else
+                        ratioCoefs[i] = double.MaxValue;                   
+                }
+                else 
+                {
+                    if (matrixCoefs[keyColumnOrRowIndex,i] != 0)
+                        ratioCoefs[i] = (-1) * solutionCoefs[i] / matrixCoefs[keyColumnOrRowIndex, i];//-1 was here and it worked somehow 
+                    else
+                        ratioCoefs[i] = double.MaxValue;                
+                }
+                    
             }
             return ratioCoefs;
         }
@@ -99,10 +110,80 @@ namespace methodAnalysisHierarchies
         }
        
 
-        public double[,] Solve(double[,] matrixCoefs,double[] solutionCoefs,double[] maximizationFunctionCoefs,Func<double,int,bool> checkOptimality,bool maximization) 
+        public void ExtendMatrix(ref double [,] matrixToExtend,double[,] oldMatrix, int newRows, int newCols) 
         {
+            for (int i = 0; i < newRows; i++)
+            {
+                for (int j = 0; j < newCols; j++)
+                {
+                    if (i < newRows - 1 && j < newCols - 1)
+                        matrixToExtend[i, j] = oldMatrix[i, j];
+                }
+            }
+        }
+        public void GaussinEleminationStep(ref double[,] extendedMatrix, int rowsWithCiCoefs, int columnsWithSolutionCoefs, int keyRowIndex, int keyColumnIndex, double keyElement) 
+        {
+            var oldSymplexTable = Matrix<double>.Build.DenseOfArray(extendedMatrix).ToArray();
+            for (int i = 0; i < rowsWithCiCoefs; i++)
+            {
+                if (i == keyRowIndex)
+                {
+                    for (int j = 0; j < columnsWithSolutionCoefs; j++)
+                    {
+                        Console.WriteLine($"{oldSymplexTable[keyRowIndex, j]} /{keyElement}");
+                        extendedMatrix[keyRowIndex, j] =
+                            Math.Round(
+                                extendedMatrix[keyRowIndex, j] / keyElement, 3);
+                    }
+                }
+                else
+                {
+                    for (int j = 0; j < columnsWithSolutionCoefs; j++)
+                    {
+                        Console.WriteLine($"{oldSymplexTable[i, j]}-({oldSymplexTable[i, keyColumnIndex]}*{oldSymplexTable[keyRowIndex, j]})/{keyElement}");
+                        extendedMatrix[i, j] = Math.Round(
+                            oldSymplexTable[i, j] -
+                            (oldSymplexTable[i, keyColumnIndex] *
+                            oldSymplexTable[keyRowIndex, j]) /
+                            keyElement, 3);
+                    }
+                }
+
+                Console.WriteLine("-------------------");
+
+            }
+        }
+        public void CopyElements(ref double[,] matrixToCopy, double [,] matrixFromCopy,int rows,int cols) 
+        {
+            for (int i = 0; i < rows; i++)
+            {
+                for (int j = 0; j < cols; j++)
+                {
+                    matrixToCopy[i, j] = matrixFromCopy[i, j];
+                }
+            }
+        }
+        public void CopyColumnFromMatrix(ref double[] solutionCoefs, double[,] extendedMatrix, int rows, int columnsWithSolutionCoefs)
+        {
+            for (int i = 0; i < rows; i++)//get solution coefs 
+            {
+                solutionCoefs[i] = extendedMatrix[i, columnsWithSolutionCoefs - 1];
+            }
+        }
+        public void CopyRowFromMatrix(ref double[] maximizationFuncCoefs, double[,] extendedMatrix, int columns, int maximizationFuncRow)
+        {
+            for (int i = 0; i < columns; i++)//get solution coefs 
+            {
+                maximizationFuncCoefs[i] = extendedMatrix[maximizationFuncRow-1,i];
+            }
+        }
+
+        public SimplexTableElementsContainer Solve(double[,] matrixCoefs,double[] solutionCoefs,double[] maximizationFunctionCoefs,Func<double,int,bool> checkOptimality,bool maximization) 
+        {
+            
             var columns = matrixCoefs.GetLength(1);
             var rows = matrixCoefs.GetLength(0);
+
 
             var coefOfBasicVariables = new double[rows];
             var ZiCoefs = new double[columns];
@@ -110,109 +191,92 @@ namespace methodAnalysisHierarchies
             var CiMinusZiCoefs = new double[columns];
             CiMinusZiCoefs = GetCiMinusZiCoefs(columns, CiMinusZiCoefs, maximizationFunctionCoefs,ZiCoefs);
 
-            //var fullSimplexTable = Matrix<double>.Build.DenseOfArray(matrixCoefs);
             var rowsWithCiCoefs = rows + 1;
             var columnsWithSolutionCoefs = columns + 1;
             var extendedMatrix = new double[rowsWithCiCoefs, columnsWithSolutionCoefs];
             var counter = 0;
-            while (!EvaluateIfObtimal(CiMinusZiCoefs,checkOptimality))//if check for optimal returns false start loop
+            var oldMaximizationFuncCoefs = maximizationFunctionCoefs;
+
+            var extendedMaxFuncCoefs = new double[columnsWithSolutionCoefs];
+            for (int i = 0; i < maximizationFunctionCoefs.Length; i++)
+            {
+                extendedMaxFuncCoefs[i] = maximizationFunctionCoefs[i];// (-1)* maximization function coefs with negative sign first time ((/*(-1)*/) not working with negative multiplication)
+            }
+
+            ExtendMatrix(ref extendedMatrix, matrixCoefs, rowsWithCiCoefs, columnsWithSolutionCoefs);
+            _matrixPrinter.Print(extendedMatrix);
+            extendedMatrix = InsertNumsToColumn(extendedMatrix,columnsWithSolutionCoefs, solutionCoefs);
+            extendedMatrix = InsertNumsToRow(extendedMatrix,rowsWithCiCoefs, maximizationFunctionCoefs);
+            _matrixPrinter.Print(extendedMatrix);
+            var matrixExtended = Matrix<double>.Build.DenseOfArray(extendedMatrix);
+            while (!EvaluateIfObtimal(CiMinusZiCoefs,checkOptimality)||!matrixExtended.Column(columnsWithSolutionCoefs-1).All(el => el >= 0))//if check for optimal returns false then start loop
             {
                 counter++;
                 if (counter >= 10)
                     break;
-                //extendedMatrix = new double[rowsWithCiCoefs, columnsWithSolutionCoefs];
-                for (int i = 0; i < rowsWithCiCoefs; i++)
+
+                // find key element with its row and column
+                var max = 0.0;
+                var keyColumnIndex = 0;
+                var keyRowIndex = 0;
+                if (solutionCoefs.All(el => el >= 0)) 
                 {
-                    for (int j = 0; j < columnsWithSolutionCoefs; j++)
-                    {
-                        if(i< rowsWithCiCoefs - 1 && j< columnsWithSolutionCoefs - 1)
-                            extendedMatrix[i, j] = matrixCoefs[i, j];
-                    }
+                    max = (maximization) ? CiMinusZiCoefs.Max() : CiMinusZiCoefs.Min();
+                    keyColumnIndex = CiMinusZiCoefs.ToList().IndexOf(max);
+                    var ratioCoefsColumn = new double[rows];
+                    ratioCoefsColumn = GetRatioCoefs(rows, ratioCoefsColumn, solutionCoefs, matrixCoefs, keyColumnIndex,true);
+                    _matrixPrinter.Print(ratioCoefsColumn);
+                    var pisitiveMin = ratioCoefsColumn.ToList().Where(el => el > 0).Min();
+                    keyRowIndex = ratioCoefsColumn.ToList().IndexOf(pisitiveMin);
+                }
+                else 
+                {
+                    max = (double)solutionCoefs.Min();
+                    keyRowIndex = solutionCoefs.ToList().IndexOf(max);
+                    var ratioCoefsRow = new double[columns];
+                    ratioCoefsRow = GetRatioCoefs(columns, ratioCoefsRow, extendedMaxFuncCoefs, matrixCoefs, keyRowIndex,false);
+                    _matrixPrinter.Print(ratioCoefsRow);
+                    var pisitiveMin = ratioCoefsRow.ToList().Where(el => el > 0).Min();
+                    keyColumnIndex = ratioCoefsRow.ToList().IndexOf(pisitiveMin);
                 }
 
-                _matrixPrinter.Print(extendedMatrix);
-
-                var max = 0.0;
-                if(maximization)
-                    max = CiMinusZiCoefs.Max();
-                else
-                    max = CiMinusZiCoefs.Min();
-
-                var keyColumnIndex = CiMinusZiCoefs.ToList().IndexOf(max);
-                var ratioCoefs = new double[rows];
-                ratioCoefs = GetRatioCoefs(rows, ratioCoefs, solutionCoefs, matrixCoefs, keyColumnIndex);//change matrix coefs with new table
-                _matrixPrinter.Print(ratioCoefs);
-
-                var min = ratioCoefs.ToList().Where(el=>el>0).Min();
-                var keyRowIndex = ratioCoefs.ToList().IndexOf(min);
                 var keyElement = matrixCoefs[keyRowIndex, keyColumnIndex];
                 Console.WriteLine("Key element {0} with index [row,column] = [{1},{2}]", keyElement,keyRowIndex,keyColumnIndex);
 
-                //fullSimplexTable= fullSimplexTable.InsertColumn(columnsWithSolutionCoefs,solutionCoefs); //= Matrix<double>.Build.DenseOfArray(AppendColumnToTheEnd(matrixCoefs, solutionCoefs));
-                //fullSimplexTable = fullSimplexTable.InsertRow(rowsWithCiCoefs,maximizationFunctionCoefs); //= Matrix<double>.Build.DenseOfArray(AppendRowToTheEnd(fullSimplexTable.ToArray(), maximizationFunctionCoefs));//increasing sizes here
-                extendedMatrix = InsertNumsToColumn(extendedMatrix,columnsWithSolutionCoefs, solutionCoefs);
-                extendedMatrix = InsertNumsToRow(extendedMatrix,rowsWithCiCoefs, maximizationFunctionCoefs);
-
-                _matrixPrinter.Print(extendedMatrix);
-
+                
                 //change basics variables
-                coefOfBasicVariables[keyRowIndex] = maximizationFunctionCoefs[keyColumnIndex];
+                coefOfBasicVariables[keyRowIndex] = oldMaximizationFuncCoefs[keyColumnIndex];
 
+                //Gaussian elimination
+                GaussinEleminationStep( ref extendedMatrix, rowsWithCiCoefs, columnsWithSolutionCoefs, keyRowIndex, keyColumnIndex, keyElement);
+                //we have to get new maximization function coefs
 
-                var oldSymplexTable = Matrix<double>.Build.DenseOfArray(extendedMatrix).ToArray();
-                for (int i = 0; i < rowsWithCiCoefs; i++) 
-                {
-                    if (i == keyRowIndex)
-                    {
-                        for (int j = 0; j < columnsWithSolutionCoefs; j++)
-                        {
-                            Console.WriteLine($"{oldSymplexTable[keyRowIndex, j]} /{keyElement}");
-                            extendedMatrix[keyRowIndex, j] =
-                                Math.Round(
-                                    extendedMatrix[keyRowIndex, j]/keyElement,3);
-                        }
-                    }
-                    else 
-                    {
-                        for (int j = 0; j < columnsWithSolutionCoefs; j++)
-                        {
-                            Console.WriteLine($"{oldSymplexTable[i, j]}-({oldSymplexTable[i, keyColumnIndex]}*{oldSymplexTable[keyRowIndex, j]})/{keyElement}");
-                            extendedMatrix[i, j] =Math.Round(
-                                oldSymplexTable[i,j]-
-                                (oldSymplexTable[i, keyColumnIndex] *
-                                oldSymplexTable[keyRowIndex, j]) /
-                                keyElement,3);
-                        }
-                    }
+                CopyRowFromMatrix(ref extendedMaxFuncCoefs, extendedMatrix, columnsWithSolutionCoefs, rowsWithCiCoefs);
 
-                    Console.WriteLine("-------------------");
-                    
-                }
                 _matrixPrinter.Print(extendedMatrix);
                 ZiCoefs = GetZiCoefs(rows, columnsWithSolutionCoefs, ZiCoefs, coefOfBasicVariables, extendedMatrix);
                 _matrixPrinter.Print(ZiCoefs);
-                CiMinusZiCoefs = GetCiMinusZiCoefs(columns, CiMinusZiCoefs, maximizationFunctionCoefs, ZiCoefs);
+
+                CiMinusZiCoefs = GetCiMinusZiCoefs(columns, CiMinusZiCoefs, oldMaximizationFuncCoefs, ZiCoefs);
                 _matrixPrinter.Print(CiMinusZiCoefs);
                 Console.WriteLine("Coefficients of basic variables");
                 _matrixPrinter.Print(coefOfBasicVariables);
-
-                for (int i = 0; i < rows; i++)
-                {
-                    for (int j = 0; j < columns; j++)
-                    {
-                        matrixCoefs[i, j] = extendedMatrix[i, j];
-                    }
-                }
-                for (int i = 0; i < rows; i++)//get solution coefs 
-                { 
-                    solutionCoefs[i] = extendedMatrix[i, columnsWithSolutionCoefs - 1];
-                }
-
-
+                CopyElements(ref matrixCoefs, extendedMatrix, rows, columns);
+                CopyColumnFromMatrix(ref solutionCoefs, extendedMatrix, rows, columnsWithSolutionCoefs);
+                matrixExtended = Matrix<double>.Build.DenseOfArray(extendedMatrix);
             }
-
-            return extendedMatrix;
+            var simplexContainer = new SimplexTableElementsContainer();
+            simplexContainer.ExtendedMatrix = extendedMatrix;
+            simplexContainer.ZiCoefs = ZiCoefs;
+            simplexContainer.CiMinusZiCoefs = CiMinusZiCoefs;
+            simplexContainer.CoefsOfBasicVariables = coefOfBasicVariables;
+            simplexContainer.MatrixCoefs = matrixCoefs;
+            simplexContainer.Solutions = solutionCoefs;
+            
+            return simplexContainer;
         }
+
+
 
         public double[,] InsertNumsToRow(double[,] extendedMatrix, int rowsWithCiCoefs, double[] maximizationFunctionCoefs)
         {
