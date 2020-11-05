@@ -12,5 +12,6 @@ namespace methodAnalysisHierarchies
         public double [] CoefsOfBasicVariables { get; set; }
         public double [,] MatrixCoefs { get; set; }
         public double [] Solutions { get; set; }
+        public double [] TargetFunctionCoefs { get; set; }
     }
 }

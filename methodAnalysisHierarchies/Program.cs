@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using AnalysisMatrix;
 using MathNet.Numerics;
 using MathNet.Numerics.LinearAlgebra;
+using methodAnalysisHierarchies.MatrixGame;
 
 
 namespace methodAnalysisHierarchies
@@ -193,13 +194,19 @@ namespace methodAnalysisHierarchies
             //simplexInitializer.InitSimplexTableFromConsole();
 
         }
+        static void GameBuilder() 
+        {
+            var matrixGame = new MatrixGame.MatrixGame();
+            matrixGame.InitGameFromConsole(new Reader());
+            //matrixGame.InitGameFromCode();
+        }
         static void Main(string[] args)
         {
             //InitFromCodeAnalyze();
             //TestMathNumeric2();
             //AhpBuilder();
             //ElectreBuilder();
-            SimplexBuilder();
+            //GameBuilder() 
 
         }
     }
