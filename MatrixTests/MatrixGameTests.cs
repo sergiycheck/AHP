@@ -122,10 +122,12 @@ namespace MatrixTests
                  {0.4, 0.2, 0.1}
 
             };
+
             var matrixGame = new MatrixGame(
                 new SimplexMethodInitializer(
                     new SimplexMethod(
                         new MatrixConsolePrinter())));
+
             matrixGame.InitGame(matrixCoefs);
             Assert.AreEqual(Math.Floor(0.25), Math.Floor(matrixGame.GamePrice));
         }

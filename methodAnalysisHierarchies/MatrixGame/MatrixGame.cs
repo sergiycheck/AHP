@@ -207,11 +207,42 @@ namespace methodAnalysisHierarchies.MatrixGame
         {
             Console.WriteLine("Enter data of matrix game");
             (var rows, var cols) = _reader.ReadRowsAndCols();
+            Console.WriteLine("How to enter values by user or random (Enter user or random)");
+            var maxOrMin = Console.ReadLine();
+            var matrix2d = new double[rows, cols];
+            if (maxOrMin.Trim().Equals("user"))
+            {
+                matrix2d = _reader.ReadMatrix(rows, cols);
+            }
+            else if (maxOrMin.Trim().Equals("random"))
+            {
+                var random = new Random();
+                Console.WriteLine("enter max value");
+                var maxValue = Console.ReadLine();
+                int.TryParse(maxValue, out int maxValueParsed);
+                Console.WriteLine("enter min value");
+                var minValue = Console.ReadLine();
+                int.TryParse(minValue, out int minValueParsed);
 
-            var matrix2d = _reader.ReadMatrix(rows, cols);
+                for (int i = 0; i < rows; i++)
+                {
+                    for (int j = 0; j < cols; j++)
+                    {
+                        matrix2d[i, j] = Math.Round(random.NextDouble() * (maxValueParsed - minValueParsed) + minValueParsed, 2);
+                    }
+                }
+            }
+            else
+            {
+                Console.WriteLine("Not correct");
+                return;
+
+            }
+            
             var printer = new MatrixConsolePrinter();
             printer.Print(matrix2d);
-            InitGame(matrix2d);
+            if(matrix2d!=null)
+                InitGame(matrix2d);
         }
 
 

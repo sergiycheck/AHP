@@ -37,6 +37,35 @@ namespace MatrixTests
             return matrix;
         }
         [Test]
+        public void GenerateMatrixTest() 
+        {
+            Matrix<double> m = Matrix<double>.Build.Random(3, 4);
+            Console.WriteLine(m);
+        }
+        [Test]
+        public void GenerateMatrixTest2() 
+        {
+            var random = new Random();
+            var rows = 5;
+            var cols = 7;
+            var maxValueParsed = 10.0;
+            var minValueParsed = -10.0;
+            var matrix2d = new double[rows, cols];
+            for (int i = 0; i < rows; i++)
+            {
+                for (int j = 0; j < cols; j++)
+                {
+                    matrix2d[i, j] =Math.Round( random.NextDouble() * (maxValueParsed - minValueParsed) + minValueParsed,2);
+                }
+            }
+
+            Matrix<double> m = Matrix<double>.Build.DenseOfArray(matrix2d);
+            Console.WriteLine(m);
+        }
+
+
+
+        [Test]
         public void MatrixCreation2() 
         {
             var matrix = GetMatrix(3,5);

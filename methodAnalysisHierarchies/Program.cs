@@ -196,7 +196,10 @@ namespace methodAnalysisHierarchies
         }
         static void GameBuilder() 
         {
-            var matrixGame = new MatrixGame.MatrixGame();
+            var matrixGame = new MatrixGame.MatrixGame(
+                new SimplexMethodInitializer(
+                    new SimplexMethod(
+                        new MatrixConsolePrinter())));
             matrixGame.InitGameFromConsole(new Reader());
             //matrixGame.InitGameFromCode();
         }
@@ -206,7 +209,7 @@ namespace methodAnalysisHierarchies
             //TestMathNumeric2();
             //AhpBuilder();
             //ElectreBuilder();
-            //GameBuilder() 
+            GameBuilder(); 
 
         }
     }
